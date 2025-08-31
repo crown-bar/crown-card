@@ -24,6 +24,12 @@ const port = process.env.PORT || 3000
 const rootPath = process.env.ROOTPATH || process.cwd()
 // endregion
 
+// check if environment variables are set
+const requiredEndVariables = ['AUTH_TOKEN', 'ADMIN_AUTH_TOKEN', 'DB_USER', 'DB_PASSWORD', 'DB_NAME']
+for (const key of requiredEndVariables) {
+    if (!process.env[key]) throw Error(`Missing required environment variable "${key}"`)
+}
+
 // Middleware
 app.use(express.static(rootPath + '/app/public'))
 app.use(bodyParser.urlencoded({limit: '5000mb', extended: true, parameterLimit: 100000000000}))
