@@ -65,5 +65,5 @@ volumes:
 
 networks:
   internal:
-  traefik-proxy:
+  traefik_proxy:
     external: true
