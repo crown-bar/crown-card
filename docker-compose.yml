@@ -2,8 +2,6 @@ services:
   api:
     build: .
     container_name: crown-card-api
-    ports:
-      - "3000:3000"
     environment:
       # App
       PORT: 3000
@@ -20,6 +18,30 @@ services:
       postgres:
         condition: service_healthy
     restart: on-failure
+    networks:
+      - internal
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+
+      # Router (HTTPS)
+      - "traefik.http.routers.cc.rule=Host(`cc.thecrownbar.ch`)"
+      - "traefik.http.routers.cc.entrypoints=websecure"
+      - "traefik.http.routers.cc.tls.certresolver=leresolver"
+
+      # Service (internal container port)
+      - "traefik.http.services.cc.loadbalancer.server.port=3000"
+
+      # (Optional) gzip compression + basic security headers
+      - "traefik.http.middlewares.cc-compress.compress=true"
+      - "traefik.http.middlewares.cc-sec.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.cc-sec.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.cc-sec.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.cc-sec.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.cc-sec.headers.contentTypeNosniff=true"
+      - "traefik.http.routers.cc.middlewares=cc-compress,cc-sec"
+
 
   postgres:
     image: postgres:15-alpine
@@ -30,13 +52,18 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h localhost" ]
       interval: 2s
       timeout: 5s
       retries: 20
+    networks:
+      - internal
 
 volumes:
   db-data:
+
+networks:
+  internal:
+  traefik-proxy:
+    external: true
